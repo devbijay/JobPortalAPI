@@ -1,6 +1,8 @@
+from dotenv import load_dotenv
+
+
 import os
 from typing import Union, List
-import boto3
 from sqlalchemy.orm import Session
 
 import models
@@ -9,8 +11,7 @@ from aws_util import s3, send_sqs
 from database import SessionLocal, get_db, engine
 
 from fastapi import FastAPI, Query, Depends, HTTPException
-
-
+load_dotenv()
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Candidates API")
@@ -40,7 +41,6 @@ def fetch_candidates(page: int = Query(default=1, description="Page number (defa
 @app.get("/fetch-resume", )
 def fetch_resume(candidate_id: int = Query(..., description="Candidate ID"),
                  db: Session = Depends(get_db)):
-
     candidate = db.query(models.CandidateDB).filter(models.CandidateDB.id == candidate_id).first()
     expiration_time = 3600
     return s3.generate_presigned_url(
