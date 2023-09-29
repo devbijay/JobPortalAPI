@@ -18,7 +18,7 @@ s3 = boto3.client('s3',
 
 
 def send_sqs(payload):
-    queue_url = sqs.get_queue_url(QueueName=QUEUE_NAME)
+    queue_url = os.getenv("SQS_QUEUE_URL")
     response = sqs.send_message(
         QueueUrl=queue_url,
         MessageBody=payload

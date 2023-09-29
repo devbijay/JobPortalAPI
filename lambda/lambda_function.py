@@ -21,15 +21,17 @@ def generate_pdf_resume(candidate):
 
     pdf_buffer = BytesIO()
     pdf.output(pdf_buffer)
-    return pdf_buffer.getvalue()
+    pdf_buffer.seek(0)
+
+    return pdf_buffer
 
 
 def upload_to_s3_with_tag(payload, file_name, tags):
+    tagging_str = "&".join([f"{tag['Key']}={tag['Value']}" for tag in tags])
     s3.put_object(Bucket=S3_BUCKET_NAME,
                   Key=f"resume/{file_name}",
                   Body=payload,
-                  Tagging="&".join([f"{tag['Key']}={tag['Value']}" for tag in tags]),
-                  Metadata={"TagSet": json.dumps(tags)}
+                  Tagging=tagging_str.encode('utf-8').decode('utf-8')
                   )
 
 
@@ -39,5 +41,5 @@ def lambda_handler(event, context):
 
         for candidate in sqs_payload:
             resume = generate_pdf_resume(candidate)
-            skill_tags = [{"Key": "Skill", "Value": skill} for skill in candidate['Skills']]
+            skill_tags = [{"Key": "Skill", "Value": skill} for skill in candidate['skills'].split(",")]
             upload_to_s3_with_tag(payload=resume, file_name=f"{candidate['name']}-candidate['id'].pdf", tags=skill_tags)

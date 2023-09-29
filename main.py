@@ -1,3 +1,5 @@
+import json
+
 from dotenv import load_dotenv
 
 
@@ -54,15 +56,11 @@ def fetch_resume(candidate_id: int = Query(..., description="Candidate ID"),
 def fetch_candidates(candidates: List[schemas.CandidateCreate], db: Session = Depends(get_db)):
     db_candidates = [models.CandidateDB(**candidate.dict()) for candidate in candidates]
     print(db_candidates)
-    try:
-        with db.begin_nested():
-            db.bulk_save_objects(db_candidates)
-            db.commit()
-            send_sqs(candidates)
-            db.refresh(db_candidates)
-    except Exception as e:
-        db.rollback()
-        print(e)
-        return {"Status": "Error", "Message": "An error occurred while adding candidates"}
+    with db.begin_nested():
+        db.bulk_save_objects(db_candidates)
+        db.commit()
+        json_data = json.dumps([candidate.dict() for candidate in candidates])
+        print(json_data)
+        send_sqs(json_data)
 
     return {"Status": "Success", "Message": "Candidates added successfully"}
