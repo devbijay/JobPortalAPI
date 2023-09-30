@@ -3,7 +3,7 @@ from io import BytesIO
 import boto3
 from fpdf import FPDF
 
-S3_BUCKET_NAME = "your-s3-bucket-name"
+S3_BUCKET_NAME = "candidatestest-bucket"
 s3 = boto3.client('s3')
 
 
@@ -27,11 +27,10 @@ def generate_pdf_resume(candidate):
 
 
 def upload_to_s3_with_tag(payload, file_name, tags):
-    tagging_str = "&".join([f"{tag['Key']}={tag['Value']}" for tag in tags])
     s3.put_object(Bucket=S3_BUCKET_NAME,
                   Key=f"resume/{file_name}",
                   Body=payload,
-                  Tagging=tagging_str.encode('utf-8').decode('utf-8')
+                  Tagging=tags
                   )
 
 
@@ -41,5 +40,6 @@ def lambda_handler(event, context):
 
         for candidate in sqs_payload:
             resume = generate_pdf_resume(candidate)
-            skill_tags = [{"Key": "Skill", "Value": skill} for skill in candidate['skills'].split(",")]
-            upload_to_s3_with_tag(payload=resume, file_name=f"{candidate['name']}-candidate['id'].pdf", tags=skill_tags)
+            skill_tags = '&'.join([f'{skill.strip()}=1' for skill in candidate['skills'].split(",")])
+            print(skill_tags)
+            upload_to_s3_with_tag(payload=resume, file_name=f"{candidate['email']}.pdf", tags=skill_tags)
