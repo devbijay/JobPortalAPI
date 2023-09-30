@@ -2,7 +2,6 @@ import json
 
 from dotenv import load_dotenv
 
-
 import os
 from typing import Union, List
 from sqlalchemy.orm import Session
@@ -13,6 +12,7 @@ from aws_util import s3, send_sqs
 from database import SessionLocal, get_db, engine
 
 from fastapi import FastAPI, Query, Depends, HTTPException
+
 load_dotenv()
 models.Base.metadata.create_all(bind=engine)
 
@@ -40,16 +40,17 @@ def fetch_candidates(page: int = Query(default=1, description="Page number (defa
     return query.offset(skip).limit(limit).all()
 
 
-@app.get("/fetch-resume", )
+@app.get("/fetch-resume", response_model=schemas.ResumeLink)
 def fetch_resume(candidate_id: int = Query(..., description="Candidate ID"),
                  db: Session = Depends(get_db)):
     candidate = db.query(models.CandidateDB).filter(models.CandidateDB.id == candidate_id).first()
     expiration_time = 3600
-    return s3.generate_presigned_url(
+    link = s3.generate_presigned_url(
         'get_object',
         Params={'Bucket': os.getenv("S3_BUCKET_NAME"), 'Key': f"resume/{candidate.email}.pdf"},
         ExpiresIn=expiration_time
     )
+    return schemas.ResumeLink(link=link)
 
 
 @app.post("/add-candidates")

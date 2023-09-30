@@ -26,3 +26,7 @@ class CandidateUpdate(CandidateBase):
 class Candidate(CandidateBase):
     class Config:
         orm_mode = True
+
+
+class ResumeLink(BaseModel):
+    link: str
