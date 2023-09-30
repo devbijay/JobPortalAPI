@@ -47,7 +47,7 @@ def fetch_resume(candidate_id: int = Query(..., description="Candidate ID"),
     expiration_time = 3600
     return s3.generate_presigned_url(
         'get_object',
-        Params={'Bucket': os.getenv("S3_BUCKET_NAME"), 'Key': f"{candidate.name}-{candidate.id}.pdf"},
+        Params={'Bucket': os.getenv("S3_BUCKET_NAME"), 'Key': f"resume/{candidate.email}.pdf"},
         ExpiresIn=expiration_time
     )
 
