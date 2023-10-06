@@ -25,7 +25,7 @@ class CandidateUpdate(CandidateBase):
 
 class Candidate(CandidateBase):
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class ResumeLink(BaseModel):

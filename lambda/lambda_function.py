@@ -1,5 +1,9 @@
 import json
+import re
+import urllib
 from io import BytesIO
+from urllib.parse import urlencode
+
 import boto3
 from fpdf import FPDF
 
@@ -40,6 +44,7 @@ def lambda_handler(event, context):
 
         for candidate in sqs_payload:
             resume = generate_pdf_resume(candidate)
-            skill_tags = '&'.join([f'{skill.strip()}=1' for skill in candidate['skills'].split(",")])
+            skill_tags = urlencode({skill.strip(): 1 for skill in candidate['skills'].split(",")})
+            skill_tags = re.sub(r'[^\w\s_.:/=+\-&]', '', skill_tags)
             print(skill_tags)
             upload_to_s3_with_tag(payload=resume, file_name=f"{candidate['email']}.pdf", tags=skill_tags)

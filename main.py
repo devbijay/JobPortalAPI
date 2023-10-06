@@ -1,9 +1,10 @@
 import json
 
+import uvicorn
 from dotenv import load_dotenv
 
 import os
-from typing import Union, List
+from typing import Union, List, Optional
 from sqlalchemy.orm import Session
 
 import models
@@ -20,17 +21,23 @@ app = FastAPI(title="Candidates API")
 
 
 @app.get("/fetch-candidates", response_model=List[schemas.Candidate])
-def fetch_candidates(page: int = Query(default=1, description="Page number (default is 1)"),
+def fetch_candidates(email: str = Query(None, description="Filter by candidate email"),
                      city: str = Query(None, description="Filter by city"),
                      skills: str = Query(None, description="Filter by tech skills"),
+                     page: int = Query(default=1, description="Page number (default is 1)"),
+                     limit: str = Query(10, description="Result Per Page"),
                      db: Session = Depends(get_db)):
-    limit = 10
+
     if page < 1:
         raise HTTPException(status_code=400, detail="Page number must be greater than or equal to 1")
 
     skip = (page - 1) * limit
 
     query = db.query(models.CandidateDB)
+
+    if email:
+        query = query.filter(models.CandidateDB.email == email)
+
     if city:
         query = query.filter(models.CandidateDB.city == city)
 
@@ -41,9 +48,21 @@ def fetch_candidates(page: int = Query(default=1, description="Page number (defa
 
 
 @app.get("/fetch-resume", response_model=schemas.ResumeLink)
-def fetch_resume(candidate_id: int = Query(..., description="Candidate ID"),
+def fetch_resume(candidate_id: Optional[int] = Query(None, description="Candidate ID"),
+                 candidate_email: Optional[str] = Query(None, description="Candidate Email"),
                  db: Session = Depends(get_db)):
-    candidate = db.query(models.CandidateDB).filter(models.CandidateDB.id == candidate_id).first()
+    if candidate_id is None and candidate_email is None:
+        raise HTTPException(status_code=400, detail="Either candidate_id or candidate_email must be provided")
+
+    candidate = None
+    if candidate_id:
+        candidate = db.query(models.CandidateDB).filter(models.CandidateDB.id == candidate_id).first()
+    else:
+        candidate = db.query(models.CandidateDB).filter(models.CandidateDB.email == candidate_email).first()
+
+    if not candidate:
+        raise HTTPException(status_code=400, detail="Either candidate_id or candidate_email is invalid")
+
     expiration_time = 3600
     link = s3.generate_presigned_url(
         'get_object',
@@ -65,3 +84,7 @@ def fetch_candidates(candidates: List[schemas.CandidateCreate], db: Session = De
         send_sqs(json_data)
 
     return {"Status": "Success", "Message": "Candidates added successfully"}
+
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)
