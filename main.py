@@ -24,8 +24,8 @@ app = FastAPI(title="Candidates API")
 def fetch_candidates(email: str = Query(None, description="Filter by candidate email"),
                      city: str = Query(None, description="Filter by city"),
                      skills: str = Query(None, description="Filter by tech skills"),
-                     page: int = Query(default=1, description="Page number (default is 1)"),
-                     limit: str = Query(10, description="Result Per Page"),
+                     page: int = Query(default=1, description="Page number (default is 1)", ge=1),
+                     limit: int = Query(10, description="Result Per Page", ge=1, le=10),
                      db: Session = Depends(get_db)):
 
     if page < 1:
